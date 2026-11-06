@@ -118,7 +118,7 @@ include __DIR__ . '/../includes/header.php';
                     <form method="post" action="" style="display:inline;">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?php echo (int) $o['id']; ?>">
-                        <button type="submit" onclick="return confirm('Delete this organization?');">Delete</button>
+                        <button type="button" class="btn-danger" onclick="confirmDelete(this.form, 'Delete this organization?');">Delete</button>
                     </form>
                 </td>
             </tr>
@@ -128,4 +128,9 @@ include __DIR__ . '/../includes/header.php';
         <?php endif; ?>
         </tbody>
     </table>
+<script>
+  function confirmDelete(form, text) {
+    showConfirm(text, function() { form.submit(); });
+  }
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -110,11 +110,29 @@ include __DIR__ . '/../includes/header.php';
 
         <h3>Change Password (optional)</h3>
         <label>Current Password</label><br>
-        <input type="password" name="current_password"><br>
+        <div class="password-wrapper">
+            <input type="password" name="current_password" id="pwdCurrent">
+            <button type="button" class="password-toggle" data-target="pwdCurrent" aria-label="Toggle password visibility">
+                <i data-lucide="eye" class="eye-show"></i>
+                <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+            </button>
+        </div><br>
         <label>New Password</label><br>
-        <input type="password" name="new_password"><br>
+        <div class="password-wrapper">
+            <input type="password" name="new_password" id="pwdNew">
+            <button type="button" class="password-toggle" data-target="pwdNew" aria-label="Toggle password visibility">
+                <i data-lucide="eye" class="eye-show"></i>
+                <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+            </button>
+        </div><br>
         <label>Confirm New Password</label><br>
-        <input type="password" name="confirm_password"><br>
+        <div class="password-wrapper">
+            <input type="password" name="confirm_password" id="pwdConfirm">
+            <button type="button" class="password-toggle" data-target="pwdConfirm" aria-label="Toggle password visibility">
+                <i data-lucide="eye" class="eye-show"></i>
+                <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+            </button>
+        </div><br>
 
         <input type="submit" value="Update Profile">
     </form>

@@ -84,9 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $success = $success ?? '';
 function fc($name, $fe) { return isset($fe[$name]) ? 'invalid' : ''; }
 
+$authWide = true;
 $pageTitle = 'Register';
 include __DIR__ . '/includes/header.php';
 ?>
+    <a href="<?php echo BASE_URL; ?>login.php" class="back-link">← Back to Login</a>
     <h1>Student Registration</h1>
     <?php if (!empty($errors)): ?>
         <div class="alert error">Please correct the highlighted fields below.</div>
@@ -95,50 +97,66 @@ include __DIR__ . '/includes/header.php';
         <div class="alert success"><?php echo htmlspecialchars($success); ?></div>
     <?php endif; ?>
     <form method="post" action="" novalidate>
-        <label>Username *</label><br>
-        <input type="text" name="username" required class="<?php echo fc('username', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['username']); ?>"><br>
-        <?php if (isset($fieldErrors['username'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['username']); ?></small><br><?php endif; ?>
+        <div class="form-columns">
+            <div class="form-column">
+                <label>Username *</label>
+                <input type="text" name="username" required class="<?php echo fc('username', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['username']); ?>">
+                <?php if (isset($fieldErrors['username'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['username']); ?></small><?php endif; ?>
 
-        <label>Password * (min <?php echo MIN_PASSWORD_LENGTH; ?> chars)</label><br>
-        <input type="password" name="password" required class="<?php echo fc('password', $fieldErrors); ?>"><br>
-        <?php if (isset($fieldErrors['password'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['password']); ?></small><br><?php endif; ?>
+                <label>Password * (min <?php echo MIN_PASSWORD_LENGTH; ?> chars)</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password" id="pwdReg" required class="<?php echo fc('password', $fieldErrors); ?>">
+                    <button type="button" class="password-toggle" data-target="pwdReg" aria-label="Toggle password visibility">
+                        <i data-lucide="eye" class="eye-show"></i>
+                        <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+                    </button>
+                </div>
+                <?php if (isset($fieldErrors['password'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['password']); ?></small><?php endif; ?>
 
-        <label>Confirm Password *</label><br>
-        <input type="password" name="password2" required class="<?php echo fc('password2', $fieldErrors); ?>"><br>
-        <?php if (isset($fieldErrors['password2'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['password2']); ?></small><br><?php endif; ?>
+                <label>Confirm Password *</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password2" id="pwdReg2" required class="<?php echo fc('password2', $fieldErrors); ?>">
+                    <button type="button" class="password-toggle" data-target="pwdReg2" aria-label="Toggle password visibility">
+                        <i data-lucide="eye" class="eye-show"></i>
+                        <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+                    </button>
+                </div>
+                <?php if (isset($fieldErrors['password2'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['password2']); ?></small><?php endif; ?>
 
-        <label>Student Number *</label><br>
-        <input type="text" name="student_number" required class="<?php echo fc('student_number', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['student_number']); ?>"><br>
-        <?php if (isset($fieldErrors['student_number'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['student_number']); ?></small><br><?php endif; ?>
+                <label>Student Number *</label>
+                <input type="text" name="student_number" required class="<?php echo fc('student_number', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['student_number']); ?>">
+                <?php if (isset($fieldErrors['student_number'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['student_number']); ?></small><?php endif; ?>
 
-        <label>First Name *</label><br>
-        <input type="text" name="first_name" required class="<?php echo fc('first_name', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['first_name']); ?>"><br>
-        <?php if (isset($fieldErrors['first_name'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['first_name']); ?></small><br><?php endif; ?>
+                <label>Email *</label>
+                <input type="email" name="email" required class="<?php echo fc('email', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['email']); ?>">
+                <?php if (isset($fieldErrors['email'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['email']); ?></small><?php endif; ?>
+            </div>
+            <div class="form-column">
+                <label>First Name *</label>
+                <input type="text" name="first_name" required class="<?php echo fc('first_name', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['first_name']); ?>">
+                <?php if (isset($fieldErrors['first_name'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['first_name']); ?></small><?php endif; ?>
 
-        <label>Middle Name</label><br>
-        <input type="text" name="middle_name" value="<?php echo htmlspecialchars($vals['middle_name']); ?>"><br>
+                <label>Middle Name</label>
+                <input type="text" name="middle_name" value="<?php echo htmlspecialchars($vals['middle_name']); ?>">
 
-        <label>Last Name *</label><br>
-        <input type="text" name="last_name" required class="<?php echo fc('last_name', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['last_name']); ?>"><br>
-        <?php if (isset($fieldErrors['last_name'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['last_name']); ?></small><br><?php endif; ?>
+                <label>Last Name *</label>
+                <input type="text" name="last_name" required class="<?php echo fc('last_name', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['last_name']); ?>">
+                <?php if (isset($fieldErrors['last_name'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['last_name']); ?></small><?php endif; ?>
 
-        <label>Course *</label><br>
-        <input type="text" name="course" required class="<?php echo fc('course', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['course']); ?>"><br>
-        <?php if (isset($fieldErrors['course'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['course']); ?></small><br><?php endif; ?>
+                <label>Course *</label>
+                <input type="text" name="course" required class="<?php echo fc('course', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['course']); ?>">
+                <?php if (isset($fieldErrors['course'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['course']); ?></small><?php endif; ?>
 
-        <label>Year Level *</label><br>
-        <select name="year_level" required class="<?php echo fc('year_level', $fieldErrors); ?>">
-            <option value="">-- Select --</option>
-            <?php for ($i = 1; $i <= 6; $i++): ?>
-                <option value="<?php echo $i; ?>" <?php echo (string)$vals['year_level'] === (string)$i ? 'selected' : ''; ?>><?php echo $i; ?></option>
-            <?php endfor; ?>
-        </select><br>
-        <?php if (isset($fieldErrors['year_level'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['year_level']); ?></small><br><?php endif; ?>
-
-        <label>Email *</label><br>
-        <input type="email" name="email" required class="<?php echo fc('email', $fieldErrors); ?>" value="<?php echo htmlspecialchars($vals['email']); ?>"><br>
-        <?php if (isset($fieldErrors['email'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['email']); ?></small><br><?php endif; ?>
-
-        <input type="submit" value="Register">
+                <label>Year Level *</label>
+                <select name="year_level" required class="<?php echo fc('year_level', $fieldErrors); ?>">
+                    <option value="">-- Select --</option>
+                    <?php for ($i = 1; $i <= 6; $i++): ?>
+                        <option value="<?php echo $i; ?>" <?php echo (string)$vals['year_level'] === (string)$i ? 'selected' : ''; ?>><?php echo $i; ?></option>
+                    <?php endfor; ?>
+                </select>
+                <?php if (isset($fieldErrors['year_level'])): ?><small class="field-error"><?php echo htmlspecialchars($fieldErrors['year_level']); ?></small><?php endif; ?>
+            </div>
+        </div>
+        <input type="submit" value="Register" style="display:block;margin-left:auto;margin-right:auto;">
     </form>
 <?php include __DIR__ . '/includes/footer.php'; ?>

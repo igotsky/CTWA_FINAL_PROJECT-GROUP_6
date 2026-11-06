@@ -14,13 +14,5 @@ if (isLoggedIn()) {
     exit;
 }
 
-$pageTitle = 'Home';
-include __DIR__ . '/includes/header.php';
-?>
-    <h1>Welcome to <?php echo SITE_NAME; ?></h1>
-    <p>A centralized system for managing student organization memberships.</p>
-    <p>
-        <a href="<?php echo BASE_URL; ?>login.php">Login</a> |
-        <a href="<?php echo BASE_URL; ?>register.php">Register as Student</a>
-    </p>
-<?php include __DIR__ . '/includes/footer.php'; ?>
+header('Location: ' . BASE_URL . 'login.php');
+exit;

@@ -40,7 +40,7 @@ include __DIR__ . '/../includes/header.php';
                 <td><?php echo htmlspecialchars($a['org_name']); ?></td>
                 <td><?php echo htmlspecialchars($a['description']); ?></td>
                 <td><?php echo htmlspecialchars($a['applied_at']); ?></td>
-                <td><?php echo htmlspecialchars($a['status']); ?></td>
+                <td><span class="badge <?php echo strtolower($a['status']); ?>"><?php echo htmlspecialchars($a['status']); ?></span></td>
             </tr>
         <?php endforeach; ?>
         <?php if (empty($apps)): ?>

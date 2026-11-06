@@ -30,4 +30,21 @@ include __DIR__ . '/../includes/header.php';
             </form>
         </div>
     <?php endforeach; ?>
+<?php
+$showApplied = isset($_GET['applied']);
+$applyError = trim($_GET['apply_error'] ?? '');
+if ($showApplied || $applyError !== ''): ?>
+<script>
+  (function() {
+    <?php if ($showApplied): ?>
+    showMessage('Application submitted successfully. Status: Pending.', 'success');
+    <?php else: ?>
+    showMessage(<?php echo json_encode($applyError); ?>, 'error');
+    <?php endif; ?>
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  })();
+</script>
+<?php endif; ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

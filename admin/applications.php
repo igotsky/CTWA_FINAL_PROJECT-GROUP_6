@@ -79,7 +79,7 @@ include __DIR__ . '/../includes/header.php';
                 <td><?php echo htmlspecialchars($a['course'] . ' - ' . $a['year_level']); ?></td>
                 <td><?php echo htmlspecialchars($a['org_name']); ?></td>
                 <td><?php echo htmlspecialchars($a['applied_at']); ?></td>
-                <td><?php echo htmlspecialchars($a['status']); ?></td>
+                <td><span class="badge <?php echo strtolower($a['status']); ?>"><?php echo htmlspecialchars($a['status']); ?></span></td>
                 <td>
                     <form method="post" action="" style="display:inline;">
                         <input type="hidden" name="id" value="<?php echo (int) $a['id']; ?>">
