@@ -71,7 +71,9 @@ if (isset($_GET['edit'])) {
 
 // List
 $orgs = [];
-$res = mysqli_query($conn, 'SELECT id, name, description, created_at FROM organizations ORDER BY name');
+$res = mysqli_query($conn, "SELECT o.id, o.name, o.description, o.created_at,
+        (SELECT COUNT(*) FROM memberships m WHERE m.organization_id = o.id AND m.status = 'Approved') AS member_count
+        FROM organizations o ORDER BY name");
 if ($res) {
     while ($row = mysqli_fetch_assoc($res)) {
         $orgs[] = $row;
@@ -106,13 +108,14 @@ include __DIR__ . '/../includes/header.php';
 
     <h2>Organization List</h2>
     <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+        <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Members</th><th>Actions</th></tr></thead>
         <tbody>
         <?php foreach ($orgs as $o): ?>
             <tr>
                 <td><?php echo (int) $o['id']; ?></td>
                 <td><?php echo htmlspecialchars($o['name']); ?></td>
                 <td><?php echo htmlspecialchars($o['description']); ?></td>
+                <td><?php echo (int) $o['member_count']; ?></td>
                 <td>
                     <a href="<?php echo BASE_URL; ?>admin/organizations.php?edit=<?php echo (int) $o['id']; ?>">Edit</a>
                     <form method="post" action="" style="display:inline;">
@@ -124,7 +127,7 @@ include __DIR__ . '/../includes/header.php';
             </tr>
         <?php endforeach; ?>
         <?php if (empty($orgs)): ?>
-            <tr><td colspan="4">No organizations yet.</td></tr>
+            <tr><td colspan="5">No organizations yet.</td></tr>
         <?php endif; ?>
         </tbody>
     </table>

@@ -5,7 +5,9 @@ require_once __DIR__ . '/../includes/auth.php';
 requireStudent();
 
 $orgs = [];
-$res = mysqli_query($conn, 'SELECT id, name, description, created_at FROM organizations ORDER BY name');
+$res = mysqli_query($conn, "SELECT o.id, o.name, o.description, o.created_at,
+        (SELECT COUNT(*) FROM memberships m WHERE m.organization_id = o.id AND m.status = 'Approved') AS member_count
+        FROM organizations o ORDER BY name");
 if ($res) {
     while ($row = mysqli_fetch_assoc($res)) {
         $orgs[] = $row;
@@ -24,6 +26,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="card">
             <h3><?php echo htmlspecialchars($o['name']); ?></h3>
             <p><?php echo nl2br(htmlspecialchars($o['description'])); ?></p>
+            <p><strong>Members:</strong> <?php echo (int) $o['member_count']; ?></p>
             <form method="post" action="<?php echo BASE_URL; ?>student/apply.php">
                 <input type="hidden" name="organization_id" value="<?php echo (int) $o['id']; ?>">
                 <button type="submit">Apply for Membership</button>

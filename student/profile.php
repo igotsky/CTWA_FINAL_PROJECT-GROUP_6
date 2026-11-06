@@ -17,57 +17,28 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $student) {
-    $firstName  = trim($_POST['first_name'] ?? '');
-    $middleName = trim($_POST['middle_name'] ?? '');
-    $lastName   = trim($_POST['last_name'] ?? '');
-    $course     = trim($_POST['course'] ?? '');
-    $yearLevel  = (int) ($_POST['year_level'] ?? 0);
-    $email      = trim($_POST['email'] ?? '');
+    $action = $_POST['action'] ?? '';
 
-    $newPassword     = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-    $currentPassword = $_POST['current_password'] ?? '';
+    if ($action === 'profile') {
+        $firstName  = trim($_POST['first_name'] ?? '');
+        $middleName = trim($_POST['middle_name'] ?? '');
+        $lastName   = trim($_POST['last_name'] ?? '');
+        $course     = trim($_POST['course'] ?? '');
+        $yearLevel  = (int) ($_POST['year_level'] ?? 0);
+        $email      = trim($_POST['email'] ?? '');
 
-    if ($firstName === '' || $lastName === '' || $course === '' || $email === '') {
-        $error = 'Please fill in all required fields.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid email address.';
-    } elseif ($yearLevel < 1 || $yearLevel > 6) {
-        $error = 'Invalid year level.';
-    } else {
-        // Update student info
-        $stmt = mysqli_prepare($conn, 'UPDATE students SET first_name = ?, middle_name = ?, last_name = ?, course = ?, year_level = ?, email = ? WHERE id = ?');
-        mysqli_stmt_bind_param($stmt, 'ssssisi', $firstName, $middleName, $lastName, $course, $yearLevel, $email, $student['id']);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+        if ($firstName === '' || $lastName === '' || $course === '' || $email === '') {
+            $error = 'Please fill in all required fields.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Invalid email address.';
+        } elseif ($yearLevel < 1 || $yearLevel > 6) {
+            $error = 'Invalid year level.';
+        } else {
+            $stmt = mysqli_prepare($conn, 'UPDATE students SET first_name = ?, middle_name = ?, last_name = ?, course = ?, year_level = ?, email = ? WHERE id = ?');
+            mysqli_stmt_bind_param($stmt, 'ssssisi', $firstName, $middleName, $lastName, $course, $yearLevel, $email, $student['id']);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
 
-        // Password change (optional)
-        if ($newPassword !== '') {
-            if (strlen($newPassword) < MIN_PASSWORD_LENGTH) {
-                $error = 'New password must be at least ' . MIN_PASSWORD_LENGTH . ' characters.';
-            } elseif ($newPassword !== $confirmPassword) {
-                $error = 'New passwords do not match.';
-            } else {
-                // verify current password
-                $stmt = mysqli_prepare($conn, 'SELECT password FROM users WHERE id = ?');
-                mysqli_stmt_bind_param($stmt, 'i', $cu['id']);
-                mysqli_stmt_execute($stmt);
-                $res = mysqli_stmt_get_result($stmt);
-                $u = mysqli_fetch_assoc($res);
-                mysqli_stmt_close($stmt);
-                if (!$u || !password_verify($currentPassword, $u['password'])) {
-                    $error = 'Current password is incorrect.';
-                } else {
-                    $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-                    $stmt = mysqli_prepare($conn, 'UPDATE users SET password = ? WHERE id = ?');
-                    mysqli_stmt_bind_param($stmt, 'si', $hash, $cu['id']);
-                    mysqli_stmt_execute($stmt);
-                    mysqli_stmt_close($stmt);
-                }
-            }
-        }
-
-        if ($error === '') {
             $message = 'Profile updated successfully.';
             // refresh student data
             $stmt = mysqli_prepare($conn, 'SELECT id, student_number, first_name, middle_name, last_name, course, year_level, email FROM students WHERE user_id = ?');
@@ -76,6 +47,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $student) {
             $res = mysqli_stmt_get_result($stmt);
             $student = mysqli_fetch_assoc($res);
             mysqli_stmt_close($stmt);
+        }
+    } elseif ($action === 'password') {
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword     = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+
+        if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+            $error = 'Please fill in all password fields.';
+        } elseif (strlen($newPassword) < MIN_PASSWORD_LENGTH) {
+            $error = 'New password must be at least ' . MIN_PASSWORD_LENGTH . ' characters.';
+        } elseif ($newPassword !== $confirmPassword) {
+            $error = 'New passwords do not match.';
+        } else {
+            $stmt = mysqli_prepare($conn, 'SELECT password FROM users WHERE id = ?');
+            mysqli_stmt_bind_param($stmt, 'i', $cu['id']);
+            mysqli_stmt_execute($stmt);
+            $res = mysqli_stmt_get_result($stmt);
+            $u = mysqli_fetch_assoc($res);
+            mysqli_stmt_close($stmt);
+            if (!$u || !password_verify($currentPassword, $u['password'])) {
+                $error = 'Current password is incorrect.';
+            } else {
+                $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+                $stmt = mysqli_prepare($conn, 'UPDATE users SET password = ? WHERE id = ?');
+                mysqli_stmt_bind_param($stmt, 'si', $hash, $cu['id']);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+                $message = 'Password changed successfully.';
+            }
         }
     }
 }
@@ -89,6 +89,7 @@ include __DIR__ . '/../includes/header.php';
 
     <?php if ($student): ?>
     <form method="post" action="">
+        <input type="hidden" name="action" value="profile">
         <label>Student Number</label><br>
         <input type="text" value="<?php echo htmlspecialchars($student['student_number']); ?>" disabled><br>
         <label>First Name *</label><br>
@@ -108,7 +109,12 @@ include __DIR__ . '/../includes/header.php';
         <label>Email *</label><br>
         <input type="email" name="email" required value="<?php echo htmlspecialchars($student['email']); ?>"><br>
 
-        <h3>Change Password (optional)</h3>
+        <button type="submit" name="update_profile">Update Profile</button>
+    </form>
+
+    <h3 style="margin-top: 24px;">Change Password (optional)</h3>
+    <form method="post" action="">
+        <input type="hidden" name="action" value="password">
         <label>Current Password</label><br>
         <div class="password-wrapper">
             <input type="password" name="current_password" id="pwdCurrent">
@@ -116,7 +122,7 @@ include __DIR__ . '/../includes/header.php';
                 <i data-lucide="eye" class="eye-show"></i>
                 <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
             </button>
-        </div><br>
+        </div>
         <label>New Password</label><br>
         <div class="password-wrapper">
             <input type="password" name="new_password" id="pwdNew">
@@ -124,7 +130,7 @@ include __DIR__ . '/../includes/header.php';
                 <i data-lucide="eye" class="eye-show"></i>
                 <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
             </button>
-        </div><br>
+        </div>
         <label>Confirm New Password</label><br>
         <div class="password-wrapper">
             <input type="password" name="confirm_password" id="pwdConfirm">
@@ -132,9 +138,8 @@ include __DIR__ . '/../includes/header.php';
                 <i data-lucide="eye" class="eye-show"></i>
                 <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
             </button>
-        </div><br>
-
-        <input type="submit" value="Update Profile">
+        </div>
+        <button type="submit" name="change_password">Change Password</button>
     </form>
     <?php else: ?>
         <p>Student record not found.</p>

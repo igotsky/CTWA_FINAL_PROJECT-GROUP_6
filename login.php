@@ -78,16 +78,4 @@ include __DIR__ . '/includes/header.php';
         <input type="submit" value="Login">
     </form>
     <p>No account? <a href="<?php echo BASE_URL; ?>register.php">Register here</a>.</p>
-<div id="loginLoader" class="loading-overlay">
-  <div class="loading-spinner"></div>
-  <div class="loading-text">Logging in...</div>
-</div>
-<script>
-  (function () {
-    var form = document.querySelector('form');
-    if (form) form.addEventListener('submit', function () {
-      document.getElementById('loginLoader').classList.add('active');
-    });
-  })();
-</script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

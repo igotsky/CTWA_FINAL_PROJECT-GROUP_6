@@ -61,14 +61,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id <= 0 || $studentNumber === '' || $firstName === '' || $lastName === '' || $course === '' || $email === '' || $yearLevel < 1 || $yearLevel > 6) {
             $error = 'Please fill in all required fields.';
         } else {
-            $stmt = mysqli_prepare($conn, 'UPDATE students SET student_number = ?, first_name = ?, middle_name = ?, last_name = ?, course = ?, year_level = ?, email = ? WHERE id = ?');
-            mysqli_stmt_bind_param($stmt, 'sssssisi', $studentNumber, $firstName, $middleName, $lastName, $course, $yearLevel, $email, $id);
-            if (mysqli_stmt_execute($stmt)) {
-                $message = 'Student record updated.';
+            // Check for duplicate student number (excluding the current record)
+            $dupStmt = mysqli_prepare($conn, 'SELECT id FROM students WHERE student_number = ? AND id <> ?');
+            mysqli_stmt_bind_param($dupStmt, 'si', $studentNumber, $id);
+            mysqli_stmt_execute($dupStmt);
+            $dupRes = mysqli_stmt_get_result($dupStmt);
+            $dupRow = mysqli_fetch_assoc($dupRes);
+            mysqli_stmt_close($dupStmt);
+
+            if ($dupRow) {
+                $error = 'Student number already exists. Please use a different one.';
             } else {
-                $error = 'Failed to update student record (student number may already exist).';
+                $stmt = mysqli_prepare($conn, 'UPDATE students SET student_number = ?, first_name = ?, middle_name = ?, last_name = ?, course = ?, year_level = ?, email = ? WHERE id = ?');
+                mysqli_stmt_bind_param($stmt, 'sssssisi', $studentNumber, $firstName, $middleName, $lastName, $course, $yearLevel, $email, $id);
+                if (mysqli_stmt_execute($stmt)) {
+                    $message = 'Student record updated.';
+                } else {
+                    $error = 'Failed to update student record.';
+                }
+                mysqli_stmt_close($stmt);
             }
-            mysqli_stmt_close($stmt);
         }
     }
 }
