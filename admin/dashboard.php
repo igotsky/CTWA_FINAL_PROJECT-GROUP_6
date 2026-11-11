@@ -11,6 +11,7 @@ $appCount = 0;
 $pendingCount = 0;
 $approvedCount = 0;
 $rejectedCount = 0;
+$statusTotal = 0;
 
 $r = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM students');
 if ($r) { $studentCount = (int) mysqli_fetch_assoc($r)['c']; mysqli_free_result($r); }
