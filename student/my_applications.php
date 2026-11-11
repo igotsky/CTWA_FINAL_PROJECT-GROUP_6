@@ -14,6 +14,37 @@ $row = mysqli_fetch_assoc($res);
 if ($row) { $studentId = (int) $row['id']; }
 mysqli_stmt_close($stmt);
 
+$message = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $studentId > 0) {
+    $action = $_POST['action'] ?? '';
+    $appId  = (int) ($_POST['id'] ?? 0);
+    if ($action === 'cancel' && $appId > 0) {
+        $stmt = mysqli_prepare($conn, "SELECT id, status FROM memberships WHERE id = ? AND student_id = ?");
+        mysqli_stmt_bind_param($stmt, 'ii', $appId, $studentId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        $row = mysqli_fetch_assoc($res);
+        mysqli_stmt_close($stmt);
+
+        if (!$row) {
+            $error = 'Application not found.';
+        } elseif (!in_array($row['status'], ['Pending', 'Approved'], true)) {
+            $error = 'This application can no longer be cancelled.';
+        } else {
+            $stmt = mysqli_prepare($conn, "UPDATE memberships SET status = 'Cancelled' WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, 'i', $appId);
+            if (mysqli_stmt_execute($stmt)) {
+                $message = 'Application cancelled.';
+            } else {
+                $error = 'Failed to cancel application.';
+            }
+            mysqli_stmt_close($stmt);
+        }
+    }
+}
+
 $apps = [];
 if ($studentId > 0) {
     $stmt = mysqli_prepare($conn, "SELECT m.id, m.applied_at, m.status, o.name AS org_name, o.description
@@ -32,8 +63,10 @@ $pageTitle = 'My Applications';
 include __DIR__ . '/../includes/header.php';
 ?>
     <h1>My Applications</h1>
+    <?php if ($message !== ''): ?><div class="alert success"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
+    <?php if ($error !== ''): ?><div class="alert error"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
     <table>
-        <thead><tr><th>Organization</th><th>Description</th><th>Applied</th><th>Status</th></tr></thead>
+        <thead><tr><th>Organization</th><th>Description</th><th>Applied</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
         <?php foreach ($apps as $a): ?>
             <tr>
@@ -41,11 +74,29 @@ include __DIR__ . '/../includes/header.php';
                 <td><?php echo htmlspecialchars($a['description']); ?></td>
                 <td><?php echo htmlspecialchars($a['applied_at']); ?></td>
                 <td><span class="badge <?php echo strtolower($a['status']); ?>"><?php echo htmlspecialchars($a['status']); ?></span></td>
+                <td>
+                    <?php if (in_array($a['status'], ['Pending', 'Approved'], true)): ?>
+                        <?php $isApproved = $a['status'] === 'Approved'; ?>
+                        <form method="post" action="" style="display:inline;">
+                            <input type="hidden" name="action" value="cancel">
+                            <input type="hidden" name="id" value="<?php echo (int) $a['id']; ?>">
+                            <button type="button" class="btn-danger" onclick="confirmLeave(this.form, <?php echo $isApproved ? 'true' : 'false'; ?>);"><?php echo $isApproved ? 'Leave' : 'Cancel'; ?></button>
+                        </form>
+                    <?php else: ?>
+                        —
+                    <?php endif; ?>
+                </td>
             </tr>
         <?php endforeach; ?>
         <?php if (empty($apps)): ?>
-            <tr><td colspan="4">No applications yet.</td></tr>
+            <tr><td colspan="5">No applications yet.</td></tr>
         <?php endif; ?>
         </tbody>
     </table>
+<script>
+  function confirmLeave(form, isApproved) {
+    var msg = isApproved ? 'Leave this organization?' : 'Cancel this application?';
+    showConfirm(msg, function() { form.submit(); });
+  }
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

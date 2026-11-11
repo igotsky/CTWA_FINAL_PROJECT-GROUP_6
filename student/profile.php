@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // student/profile.php
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -6,7 +7,7 @@ requireStudent();
 
 $cu = currentUser();
 $student = null;
-$stmt = mysqli_prepare($conn, 'SELECT id, student_number, first_name, middle_name, last_name, course, year_level, email FROM students WHERE user_id = ?');
+$stmt = mysqli_prepare($conn, 'SELECT id, student_number, first_name, middle_name, last_name, gender, course, year_level, email FROM students WHERE user_id = ?');
 mysqli_stmt_bind_param($stmt, 'i', $cu['id']);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
@@ -20,33 +21,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $student) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'profile') {
-        $firstName  = trim($_POST['first_name'] ?? '');
-        $middleName = trim($_POST['middle_name'] ?? '');
-        $lastName   = trim($_POST['last_name'] ?? '');
-        $course     = trim($_POST['course'] ?? '');
-        $yearLevel  = (int) ($_POST['year_level'] ?? 0);
-        $email      = trim($_POST['email'] ?? '');
+        $email = trim($_POST['email'] ?? '');
 
-        if ($firstName === '' || $lastName === '' || $course === '' || $email === '') {
-            $error = 'Please fill in all required fields.';
+        if ($email === '') {
+            $error = 'Email is required.';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Invalid email address.';
-        } elseif ($yearLevel < 1 || $yearLevel > 6) {
-            $error = 'Invalid year level.';
         } else {
-            $stmt = mysqli_prepare($conn, 'UPDATE students SET first_name = ?, middle_name = ?, last_name = ?, course = ?, year_level = ?, email = ? WHERE id = ?');
-            mysqli_stmt_bind_param($stmt, 'ssssisi', $firstName, $middleName, $lastName, $course, $yearLevel, $email, $student['id']);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
+            try {
+                $stmt = mysqli_prepare($conn, 'UPDATE students SET email = ? WHERE id = ?');
+                mysqli_stmt_bind_param($stmt, 'si', $email, $student['id']);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
 
-            $message = 'Profile updated successfully.';
-            // refresh student data
-            $stmt = mysqli_prepare($conn, 'SELECT id, student_number, first_name, middle_name, last_name, course, year_level, email FROM students WHERE user_id = ?');
-            mysqli_stmt_bind_param($stmt, 'i', $cu['id']);
-            mysqli_stmt_execute($stmt);
-            $res = mysqli_stmt_get_result($stmt);
-            $student = mysqli_fetch_assoc($res);
-            mysqli_stmt_close($stmt);
+                $message = 'Email updated successfully.';
+                // refresh student data
+                $stmt = mysqli_prepare($conn, 'SELECT id, student_number, first_name, middle_name, last_name, gender, course, year_level, email FROM students WHERE user_id = ?');
+                mysqli_stmt_bind_param($stmt, 'i', $cu['id']);
+                mysqli_stmt_execute($stmt);
+                $res = mysqli_stmt_get_result($stmt);
+                $student = mysqli_fetch_assoc($res);
+                mysqli_stmt_close($stmt);
+            } catch (mysqli_sql_exception $e) {
+                $error = 'Failed to update email.';
+            }
         }
     } elseif ($action === 'password') {
         $currentPassword = $_POST['current_password'] ?? '';
@@ -70,10 +68,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $student) {
                 $error = 'Current password is incorrect.';
             } else {
                 $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $stmt = mysqli_prepare($conn, 'UPDATE users SET password = ? WHERE id = ?');
+                $stmt = mysqli_prepare($conn, 'UPDATE users SET password = ?, password_changed_at = NOW() WHERE id = ?');
                 mysqli_stmt_bind_param($stmt, 'si', $hash, $cu['id']);
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
+
+                // Sync session pwd_changed_at with DB to prevent forced re-login
+                $stmt = mysqli_prepare($conn, 'SELECT password_changed_at FROM users WHERE id = ?');
+                mysqli_stmt_bind_param($stmt, 'i', $cu['id']);
+                mysqli_stmt_execute($stmt);
+                $res = mysqli_stmt_get_result($stmt);
+                $row = mysqli_fetch_assoc($res);
+                mysqli_stmt_close($stmt);
+                $_SESSION['pwd_changed_at'] = $row['password_changed_at'] ?? null;
+
                 $message = 'Password changed successfully.';
             }
         }
@@ -92,24 +100,22 @@ include __DIR__ . '/../includes/header.php';
         <input type="hidden" name="action" value="profile">
         <label>Student Number</label><br>
         <input type="text" value="<?php echo htmlspecialchars($student['student_number']); ?>" disabled><br>
-        <label>First Name *</label><br>
-        <input type="text" name="first_name" required value="<?php echo htmlspecialchars($student['first_name']); ?>"><br>
+        <label>First Name</label><br>
+        <input type="text" value="<?php echo htmlspecialchars($student['first_name']); ?>" disabled><br>
         <label>Middle Name</label><br>
-        <input type="text" name="middle_name" value="<?php echo htmlspecialchars($student['middle_name']); ?>"><br>
-        <label>Last Name *</label><br>
-        <input type="text" name="last_name" required value="<?php echo htmlspecialchars($student['last_name']); ?>"><br>
-        <label>Course *</label><br>
-        <input type="text" name="course" required value="<?php echo htmlspecialchars($student['course']); ?>"><br>
-        <label>Year Level *</label><br>
-        <select name="year_level" required>
-            <?php for ($i = 1; $i <= 6; $i++): ?>
-                <option value="<?php echo $i; ?>" <?php echo (int)$student['year_level'] === $i ? 'selected' : ''; ?>><?php echo $i; ?></option>
-            <?php endfor; ?>
-        </select><br>
+        <input type="text" value="<?php echo htmlspecialchars($student['middle_name']); ?>" disabled><br>
+        <label>Last Name</label><br>
+        <input type="text" value="<?php echo htmlspecialchars($student['last_name']); ?>" disabled><br>
+        <label>Gender</label><br>
+        <input type="text" value="<?php echo htmlspecialchars($student['gender'] ?? ''); ?>" disabled><br>
+        <label>Course</label><br>
+        <input type="text" value="<?php echo htmlspecialchars($student['course'] ?? ''); ?>" disabled><br>
+        <label>Year Level</label><br>
+        <input type="text" value="<?php echo htmlspecialchars($student['year_level']); ?>" disabled><br>
         <label>Email *</label><br>
         <input type="email" name="email" required value="<?php echo htmlspecialchars($student['email']); ?>"><br>
 
-        <button type="submit" name="update_profile">Update Profile</button>
+        <button type="submit" name="update_profile">Update Email</button>
     </form>
 
     <h3 style="margin-top: 24px;">Change Password (optional)</h3>

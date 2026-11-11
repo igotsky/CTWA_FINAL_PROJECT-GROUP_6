@@ -75,14 +75,15 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <?php if ($appCount > 0): ?>
+    <?php if ($statusTotal > 0): ?>
     <div class="breakdown">
         <div class="breakdown-label">Application breakdown</div>
         <div class="bar">
             <?php
-            $pPct = $appCount ? round($pendingCount / $appCount * 100) : 0;
-            $aPct = $appCount ? round($approvedCount / $appCount * 100) : 0;
-            $rPct = $appCount ? round($rejectedCount / $appCount * 100) : 0;
+            $statusTotal = $pendingCount + $approvedCount + $rejectedCount;
+            $pPct = $statusTotal ? round($pendingCount / $statusTotal * 100) : 0;
+            $aPct = $statusTotal ? round($approvedCount / $statusTotal * 100) : 0;
+            $rPct = $statusTotal ? round($rejectedCount / $statusTotal * 100) : 0;
             ?>
             <span class="seg-pending" style="width: <?php echo $pPct; ?>%"></span>
             <span class="seg-approved" style="width: <?php echo $aPct; ?>%"></span>
@@ -95,12 +96,6 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
     <?php endif; ?>
-
-    <div class="quick-actions">
-        <a class="quick-action" href="<?php echo BASE_URL; ?>admin/organizations.php"><i data-lucide="building-2"></i>Manage Organizations</a>
-        <a class="quick-action" href="<?php echo BASE_URL; ?>admin/applications.php"><i data-lucide="clipboard-list"></i>Review Applications</a>
-        <a class="quick-action" href="<?php echo BASE_URL; ?>admin/student_records.php"><i data-lucide="users"></i>Student Records</a>
-    </div>
 
     <div class="dashboard-section">
         <div class="section-head">

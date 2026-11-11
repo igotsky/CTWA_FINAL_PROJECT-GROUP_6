@@ -14,28 +14,38 @@
 </div>
 <?php endif; ?>
 <script>
-  window.addEventListener('DOMContentLoaded', function() {
-    if (window.lucide) lucide.createIcons();
-    document.addEventListener('click', function (e) {
-      var btn = e.target && e.target.closest ? e.target.closest('.password-toggle') : null;
-      if (!btn) return;
-      var input = document.getElementById(btn.getAttribute('data-target'));
-      if (!input) return;
-      var show = input.type === 'password';
-      input.type = show ? 'text' : 'password';
-      var showIcon = btn.querySelector('.eye-show');
-      var hideIcon = btn.querySelector('.eye-hide');
-      if (showIcon) showIcon.style.display = show ? 'none' : '';
-      if (hideIcon) hideIcon.style.display = show ? '' : 'none';
-    });
+window.addEventListener('pageshow', function() {
+  if (window.lucide) lucide.createIcons();
+});
+window.addEventListener('focus', function() {
+  if (window.lucide) lucide.createIcons();
+});
+window.addEventListener('DOMContentLoaded', function() {
+  if (window.lucide) lucide.createIcons();
+  // Auto-dismiss alert messages after 5 seconds
+  setTimeout(function() {
+    document.querySelectorAll('.alert').forEach(function(a) { a.style.display = 'none'; });
+  }, 3000);
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.password-toggle') : null;
+    if (!btn) return;
+    var input = document.getElementById(btn.getAttribute('data-target'));
+    if (!input) return;
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    var showIcon = btn.querySelector('.eye-show');
+    var hideIcon = btn.querySelector('.eye-hide');
+    if (showIcon) showIcon.style.display = show ? 'none' : '';
+    if (hideIcon) hideIcon.style.display = show ? '' : 'none';
   });
-  (function() {
-    var btn = document.getElementById('menuToggle');
-    var sidebar = document.getElementById('sidebar');
-    if (btn && sidebar) {
-      btn.addEventListener('click', function() { sidebar.classList.toggle('open'); });
-    }
-  })();
+});
+(function() {
+  var btn = document.getElementById('menuToggle');
+  var sidebar = document.getElementById('sidebar');
+  if (btn && sidebar) {
+    btn.addEventListener('click', function() { sidebar.classList.toggle('open'); });
+  }
+})();
 </script>
 </body>
 </html>

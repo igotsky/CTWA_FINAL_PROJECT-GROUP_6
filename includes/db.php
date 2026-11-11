@@ -10,6 +10,44 @@ if (!$conn) {
     die('Database connection failed: ' . mysqli_connect_error());
 }
 
+// Ensure password_changed_at column exists (idempotent; ignore errors)
+try { mysqli_query($conn, "ALTER TABLE users ADD COLUMN password_changed_at TIMESTAMP NULL"); } catch (mysqli_sql_exception $e) { /* already exists */ }
+
+// Ensure app tables exist (self-healing for installs that haven't run migrations)
+mysqli_query($conn, "CREATE TABLE IF NOT EXISTS courses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL UNIQUE,
+    code VARCHAR(20) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+mysqli_query($conn, "CREATE TABLE IF NOT EXISTS org_allowed_courses (
+    organization_id INT NOT NULL,
+    course VARCHAR(80) NOT NULL,
+    PRIMARY KEY (organization_id, course),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+)");
+mysqli_query($conn, "CREATE TABLE IF NOT EXISTS registration_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    coe_image VARCHAR(255) DEFAULT NULL,
+    status ENUM('Pending','Approved','Rejected','Deleted') NOT NULL DEFAULT 'Pending',
+    rejection_reason VARCHAR(255) NULL,
+    processed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+mysqli_query($conn, "CREATE TABLE IF NOT EXISTS org_announcements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organization_id INT NOT NULL,
+    author_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES students(id) ON DELETE CASCADE
+)");
+
 // Use UTF-8 for proper character handling.
 mysqli_set_charset($conn, 'utf8mb4');
 

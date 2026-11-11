@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // includes/auth.php
 // Session and authentication helpers.
 
@@ -12,7 +13,41 @@ function startSession() {
 
 function isLoggedIn() {
     startSession();
-    return isset($_SESSION['user_id']);
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    // Obtain a DB connection
+    if (isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof mysqli) {
+        $conn = $GLOBALS['conn'];
+    } else {
+        require_once __DIR__ . '/../includes/db.php';
+        // $conn is now in local scope from the include
+        if (!isset($conn) || !($conn instanceof mysqli)) {
+            return true; // can't verify, allow
+        }
+    }
+    $stmt = mysqli_prepare($conn, 'SELECT password_changed_at FROM users WHERE id = ?');
+    if (!$stmt) {
+        return true;
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $_SESSION['user_id']);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($res);
+    mysqli_stmt_close($stmt);
+    $current = $row ? ($row['password_changed_at'] ?? null) : null;
+
+    if (!array_key_exists('pwd_changed_at', $_SESSION)) {
+        // Legacy session (created before this feature): force re-login.
+        logoutUser();
+        return false;
+    }
+    if ($_SESSION['pwd_changed_at'] !== $current) {
+        // Password changed since login -> force re-login
+        logoutUser();
+        return false;
+    }
+    return true;
 }
 
 function currentUser() {
@@ -48,7 +83,7 @@ function requireStudent() {
 }
 
 function loginUser($conn, $username, $password) {
-    $stmt = mysqli_prepare($conn, 'SELECT id, username, password, role FROM users WHERE username = ?');
+    $stmt = mysqli_prepare($conn, 'SELECT id, username, password, role, password_changed_at FROM users WHERE username = ?');
     mysqli_stmt_bind_param($stmt, 's', $username);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
@@ -58,9 +93,10 @@ function loginUser($conn, $username, $password) {
     if ($user && password_verify($password, $user['password'])) {
         startSession();
         session_regenerate_id(true);
-        $_SESSION['user_id']  = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role']     = $user['role'];
+        $_SESSION['user_id']        = $user['id'];
+        $_SESSION['username']       = $user['username'];
+        $_SESSION['role']           = $user['role'];
+        $_SESSION['pwd_changed_at'] = $user['password_changed_at'] ?? null;
         return $user;
     }
     return false;

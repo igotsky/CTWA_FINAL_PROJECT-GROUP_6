@@ -41,7 +41,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
     <h1>Welcome, <?php echo htmlspecialchars($student ? $student['first_name'] : $cu['username']); ?></h1>
     <?php if ($student): ?>
-        <p class="dashboard-sub"><?php echo htmlspecialchars($student['course'] . ' — Year ' . $student['year_level']); ?></p>
+        <p class="dashboard-sub"><?php echo htmlspecialchars(($student['course'] ?? 'No course') . ' — Year ' . $student['year_level']); ?></p>
     <?php endif; ?>
 
     <div class="stats">
@@ -60,13 +60,6 @@ include __DIR__ . '/../includes/header.php';
             <div class="num"><?php echo $pending; ?></div>
             <div class="label">Pending</div>
         </div>
-    </div>
-
-    <div class="quick-actions">
-        <a class="quick-action" href="<?php echo BASE_URL; ?>student/organizations.php"><i data-lucide="building-2"></i>Browse Organizations</a>
-        <a class="quick-action" href="<?php echo BASE_URL; ?>student/my_applications.php"><i data-lucide="clipboard-list"></i>My Applications</a>
-        <a class="quick-action" href="<?php echo BASE_URL; ?>student/joined.php"><i data-lucide="users"></i>Joined Organizations</a>
-        <a class="quick-action" href="<?php echo BASE_URL; ?>student/profile.php"><i data-lucide="user"></i>Update Profile</a>
     </div>
 
     <div class="dashboard-section">

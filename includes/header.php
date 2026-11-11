@@ -3,8 +3,23 @@
 // Shared page header + navigation. Expects $pageTitle to be set before include.
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/db.php';
 startSession();
 $cu = currentUser();
+$sidebarName = $cu['username'] ?? '';
+if (($cu['role'] ?? '') === 'student' && !empty($cu['id'])) {
+    $snStmt = mysqli_prepare($conn, 'SELECT first_name FROM students WHERE user_id = ?');
+    if ($snStmt) {
+        mysqli_stmt_bind_param($snStmt, 'i', $cu['id']);
+        mysqli_stmt_execute($snStmt);
+        $snRes = mysqli_stmt_get_result($snStmt);
+        $snRow = mysqli_fetch_assoc($snRes);
+        mysqli_stmt_close($snStmt);
+        if ($snRow && !empty($snRow['first_name'])) {
+            $sidebarName = $snRow['first_name'];
+        }
+    }
+}
 
 $currentPath = $_SERVER['SCRIPT_NAME'] ?? '';
 function isActive($needle) {
@@ -24,6 +39,7 @@ function isActive($needle) {
     <script src="https://unpkg.com/lucide@latest" defer></script>
     <script>
       function showMessage(text, type) {
+        document.querySelectorAll('.msg-overlay').forEach(function(o) { o.remove(); });
         var overlay = document.createElement('div');
         overlay.className = 'msg-overlay';
         var box = document.createElement('div');
@@ -41,13 +57,13 @@ function isActive($needle) {
         box.appendChild(ok);
         overlay.appendChild(box);
         document.body.appendChild(overlay);
-        if (type === 'success') {
-          setTimeout(function() {
-            if (document.body.contains(overlay)) document.body.removeChild(overlay);
-          }, 3000);
-        }
+        setTimeout(function() {
+          if (document.body.contains(overlay)) document.body.removeChild(overlay);
+        }, 3000);
       }
-      function showConfirm(text, onConfirm) {
+      function showConfirm(text, onConfirm, confirmLabel) {
+    confirmLabel = confirmLabel || 'Confirm';
+    document.querySelectorAll('.msg-overlay').forEach(function(o) { o.remove(); });
         var overlay = document.createElement('div');
         overlay.className = 'msg-overlay';
         var box = document.createElement('div');
@@ -71,7 +87,7 @@ function isActive($needle) {
         });
         var ok = document.createElement('button');
         ok.className = 'msg-ok';
-        ok.textContent = 'Delete';
+        ok.textContent = confirmLabel;
         ok.addEventListener('click', function() {
           if (document.body.contains(overlay)) document.body.removeChild(overlay);
           if (typeof onConfirm === 'function') onConfirm();
@@ -84,7 +100,7 @@ function isActive($needle) {
         document.body.appendChild(overlay);
       }
     </script>
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/style.css?v=2">
 </head>
 <body>
 <?php if (isLoggedIn()): ?>
@@ -98,20 +114,58 @@ function isActive($needle) {
             <?php if ($cu['role'] === 'admin'): ?>
                 <a class="nav-item <?php echo isActive('admin/dashboard.php'); ?>" href="<?php echo BASE_URL; ?>admin/dashboard.php"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
                 <a class="nav-item <?php echo isActive('admin/organizations.php'); ?>" href="<?php echo BASE_URL; ?>admin/organizations.php"><i data-lucide="building-2"></i><span>Organizations</span></a>
-                <a class="nav-item <?php echo isActive('admin/applications.php'); ?>" href="<?php echo BASE_URL; ?>admin/applications.php"><i data-lucide="clipboard-list"></i><span>Applications</span></a>
-                <a class="nav-item <?php echo isActive('admin/student_records.php'); ?>" href="<?php echo BASE_URL; ?>admin/student_records.php"><i data-lucide="users"></i><span>Student Records</span></a>
+                <a class="nav-item <?php echo isActive('admin/courses.php'); ?>" href="<?php echo BASE_URL; ?>admin/courses.php"><i data-lucide="book-open"></i><span>Courses</span></a>
+                <a class="nav-item <?php echo isActive('admin/applications.php'); ?>" href="<?php echo BASE_URL; ?>admin/applications.php"><i data-lucide="clipboard-list"></i><span>Applications</span><?php
+    $appCount = 0;
+    $res = mysqli_query($conn, "SELECT COUNT(*) AS c FROM memberships WHERE status = 'Pending'");
+    if ($res) {
+        $row = mysqli_fetch_assoc($res);
+        $appCount = (int) ($row['c'] ?? 0);
+        mysqli_free_result($res);
+    }
+    if ($appCount > 0): ?><span class="tab-badge" style="margin-left:8px;"><?php echo $appCount; ?></span><?php endif; ?></a>
+                <a class="nav-item <?php echo isActive('admin/student_records.php'); ?>" href="<?php echo BASE_URL; ?>admin/student_records.php"><i data-lucide="users"></i><span>Student Records</span><?php
+    $regCount = 0;
+    $res = mysqli_query($conn, "SELECT COUNT(*) AS c FROM registration_requests WHERE status = 'Pending'");
+    if ($res) {
+        $row = mysqli_fetch_assoc($res);
+        $regCount = (int) ($row['c'] ?? 0);
+        mysqli_free_result($res);
+    }
+    if ($regCount > 0): ?><span class="tab-badge" style="margin-left:8px;"><?php echo $regCount; ?></span><?php endif; ?></a>
             <?php else: ?>
                 <a class="nav-item <?php echo isActive('student/dashboard.php'); ?>" href="<?php echo BASE_URL; ?>student/dashboard.php"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
                 <a class="nav-item <?php echo isActive('student/organizations.php'); ?>" href="<?php echo BASE_URL; ?>student/organizations.php"><i data-lucide="building-2"></i><span>Organizations</span></a>
                 <a class="nav-item <?php echo isActive('student/my_applications.php'); ?>" href="<?php echo BASE_URL; ?>student/my_applications.php"><i data-lucide="clipboard-list"></i><span>My Applications</span></a>
-                <a class="nav-item <?php echo isActive('student/joined.php'); ?>" href="<?php echo BASE_URL; ?>student/joined.php"><i data-lucide="users"></i><span>Joined</span></a>
+                <a class="nav-item <?php echo isActive('student/joined.php'); ?>" href="<?php echo BASE_URL; ?>student/joined.php"><i data-lucide="users"></i><span>Joined</span><?php
+    $joinedCount = 0;
+    if ($cu['role'] === 'student' && !empty($cu['id'])) {
+        $sidStmt = mysqli_prepare($conn, 'SELECT id FROM students WHERE user_id = ?');
+        mysqli_stmt_bind_param($sidStmt, 'i', $cu['id']);
+        mysqli_stmt_execute($sidStmt);
+        $sidRes = mysqli_stmt_get_result($sidStmt);
+        $sidRow = mysqli_fetch_assoc($sidRes);
+        mysqli_stmt_close($sidStmt);
+        if ($sidRow) {
+            $sId = (int)$sidRow['id'];
+            // Count total pending applications across all orgs where student is moderator
+            $jcStmt = mysqli_prepare($conn, "SELECT COUNT(*) AS c FROM memberships m2 WHERE m2.status = 'Pending' AND m2.organization_id IN (SELECT m1.organization_id FROM memberships m1 WHERE m1.student_id = ? AND m1.status = 'Approved' AND m1.role = 'Moderator')");
+            mysqli_stmt_bind_param($jcStmt, 'i', $sId);
+            mysqli_stmt_execute($jcStmt);
+            $jcRes = mysqli_stmt_get_result($jcStmt);
+            $jcRow = mysqli_fetch_assoc($jcRes);
+            mysqli_stmt_close($jcStmt);
+            $joinedCount = (int) ($jcRow['c'] ?? 0);
+        }
+    }
+    if ($joinedCount > 0): ?><span class="tab-badge" style="margin-left:8px;" id="joinedBadge"><?php echo $joinedCount; ?></span><?php endif; ?></a>
                 <a class="nav-item <?php echo isActive('student/profile.php'); ?>" href="<?php echo BASE_URL; ?>student/profile.php"><i data-lucide="user"></i><span>Profile</span></a>
             <?php endif; ?>
         </nav>
         <div class="sidebar-footer">
             <div class="sidebar-user">
                 <i data-lucide="user-circle"></i>
-                <span><?php echo htmlspecialchars($cu['username']); ?></span>
+                <span><?php echo htmlspecialchars($sidebarName); ?></span>
             </div>
             <a class="nav-item logout" href="<?php echo BASE_URL; ?>logout.php"><i data-lucide="log-out"></i><span>Logout</span></a>
         </div>

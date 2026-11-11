@@ -11,14 +11,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $appId = (int) ($_POST['id'] ?? 0);
     $status = $_POST['status'] ?? '';
     if ($appId > 0 && in_array($status, ['Approved', 'Rejected', 'Pending'], true)) {
-        $stmt = mysqli_prepare($conn, 'UPDATE memberships SET status = ? WHERE id = ?');
-        mysqli_stmt_bind_param($stmt, 'si', $status, $appId);
-        if (mysqli_stmt_execute($stmt)) {
-            $message = 'Application status updated to ' . $status . '.';
-        } else {
-            $error = 'Failed to update status.';
+        // Block updates to cancelled applications
+        $curStmt = mysqli_prepare($conn, 'SELECT status FROM memberships WHERE id = ?');
+        mysqli_stmt_bind_param($curStmt, 'i', $appId);
+        mysqli_stmt_execute($curStmt);
+        $curRes = mysqli_stmt_get_result($curStmt);
+        $curRow = mysqli_fetch_assoc($curRes);
+        mysqli_stmt_close($curStmt);
+        if ($curRow && $curRow['status'] === 'Cancelled') {
+            $error = 'Cancelled applications cannot be updated.';
+            $status = null;
         }
-        mysqli_stmt_close($stmt);
+
+        // If approving, check capacity
+        if ($status === 'Approved') {
+            $stmt = mysqli_prepare($conn, 'SELECT organization_id FROM memberships WHERE id = ?');
+            mysqli_stmt_bind_param($stmt, 'i', $appId);
+            mysqli_stmt_execute($stmt);
+            $res = mysqli_stmt_get_result($stmt);
+            $row = mysqli_fetch_assoc($res);
+            mysqli_stmt_close($stmt);
+            $orgId = $row ? (int)$row['organization_id'] : 0;
+
+            if ($orgId > 0) {
+                $oStmt = mysqli_prepare($conn, 'SELECT max_members FROM organizations WHERE id = ?');
+                mysqli_stmt_bind_param($oStmt, 'i', $orgId);
+                mysqli_stmt_execute($oStmt);
+                $oRes = mysqli_stmt_get_result($oStmt);
+                $oRow = mysqli_fetch_assoc($oRes);
+                mysqli_stmt_close($oStmt);
+                $maxMembers = $oRow ? $oRow['max_members'] : null;
+
+                if ($maxMembers !== null) {
+                    $cStmt = mysqli_prepare($conn, "SELECT COUNT(*) AS c FROM memberships WHERE organization_id = ? AND status = 'Approved'");
+                    mysqli_stmt_bind_param($cStmt, 'i', $orgId);
+                    mysqli_stmt_execute($cStmt);
+                    $cRes = mysqli_stmt_get_result($cStmt);
+                    $cRow = mysqli_fetch_assoc($cRes);
+                    mysqli_stmt_close($cStmt);
+                    $approved = (int)($cRow['c'] ?? 0);
+                    // exclude current if already approved
+                    $curStmt = mysqli_prepare($conn, "SELECT status FROM memberships WHERE id = ?");
+                    mysqli_stmt_bind_param($curStmt, 'i', $appId);
+                    mysqli_stmt_execute($curStmt);
+                    $curRes = mysqli_stmt_get_result($curStmt);
+                    $curRow = mysqli_fetch_assoc($curRes);
+                    mysqli_stmt_close($curStmt);
+                    if ($curRow && $curRow['status'] === 'Approved') $approved--;
+
+                    if ($approved >= (int)$maxMembers) {
+                        $error = 'Cannot approve: organization is at full capacity.';
+                        $status = null;
+                    }
+                }
+            }
+        }
+
+        if ($status !== null) {
+            $stmt = mysqli_prepare($conn, 'UPDATE memberships SET status = ? WHERE id = ?');
+            mysqli_stmt_bind_param($stmt, 'si', $status, $appId);
+            if (mysqli_stmt_execute($stmt)) {
+                $message = 'Application status updated to ' . $status . '.';
+            } else {
+                $error = 'Failed to update status.';
+            }
+            mysqli_stmt_close($stmt);
+        }
     }
 }
 
@@ -51,6 +109,15 @@ while ($row = mysqli_fetch_assoc($res)) {
 }
 mysqli_stmt_close($stmt);
 
+// Count pending applications for polling badge
+$pendingApps = 0;
+$res = mysqli_query($conn, "SELECT COUNT(*) AS c FROM memberships WHERE status = 'Pending'");
+if ($res) {
+    $row = mysqli_fetch_assoc($res);
+    $pendingApps = (int) ($row['c'] ?? 0);
+    mysqli_free_result($res);
+}
+
 $pageTitle = 'Membership Applications';
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -61,7 +128,7 @@ include __DIR__ . '/../includes/header.php';
     <form method="get" action="">
         <label>Filter by status:</label>
         <select name="status" onchange="this.form.submit()">
-            <?php foreach (['All','Pending','Approved','Rejected'] as $s): ?>
+            <?php foreach (['All','Pending','Approved','Rejected','Cancelled'] as $s): ?>
                 <option value="<?php echo $s; ?>" <?php echo $filter === $s ? 'selected' : ''; ?>><?php echo $s; ?></option>
             <?php endforeach; ?>
         </select>
@@ -76,20 +143,24 @@ include __DIR__ . '/../includes/header.php';
                 <td><?php echo (int) $a['id']; ?></td>
                 <td><?php echo htmlspecialchars($a['first_name'] . ' ' . $a['middle_name'] . ' ' . $a['last_name']); ?></td>
                 <td><?php echo htmlspecialchars($a['student_number']); ?></td>
-                <td><?php echo htmlspecialchars($a['course'] . ' - ' . $a['year_level']); ?></td>
+                 <td><?php echo htmlspecialchars(($a['course'] ?? '—') . ' - ' . $a['year_level']); ?></td>
                 <td><?php echo htmlspecialchars($a['org_name']); ?></td>
                 <td><?php echo htmlspecialchars($a['applied_at']); ?></td>
                 <td><span class="badge <?php echo strtolower($a['status']); ?>"><?php echo htmlspecialchars($a['status']); ?></span></td>
                 <td>
-                    <form method="post" action="" style="display:inline;">
-                        <input type="hidden" name="id" value="<?php echo (int) $a['id']; ?>">
-                        <select name="status">
-                            <option value="Pending" <?php echo $a['status']==='Pending'?'selected':''; ?>>Pending</option>
-                            <option value="Approved" <?php echo $a['status']==='Approved'?'selected':''; ?>>Approved</option>
-                            <option value="Rejected" <?php echo $a['status']==='Rejected'?'selected':''; ?>>Rejected</option>
-                        </select>
-                        <button type="submit">Update</button>
-                    </form>
+                    <?php if ($a['status'] === 'Cancelled'): ?>
+                        <span class="badge cancelled">Cancelled</span>
+                    <?php else: ?>
+                        <form method="post" action="" style="display:inline;">
+                            <input type="hidden" name="id" value="<?php echo (int) $a['id']; ?>">
+                            <select name="status">
+                                <option value="Pending" <?php echo $a['status']==='Pending'?'selected':''; ?>>Pending</option>
+                                <option value="Approved" <?php echo $a['status']==='Approved'?'selected':''; ?>>Approved</option>
+                                <option value="Rejected" <?php echo $a['status']==='Rejected'?'selected':''; ?>>Rejected</option>
+                            </select>
+                            <button type="submit">Update</button>
+                        </form>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -98,4 +169,37 @@ include __DIR__ . '/../includes/header.php';
         <?php endif; ?>
         </tbody>
     </table>
+    <script>
+      (function() {
+        // Poll pending application count; auto-reload page on new submissions
+        var stored = parseInt(localStorage.getItem('appLastSeen') || '0', 10);
+        var initialCount = <?php echo (int) $pendingApps; ?>;
+        if (stored > initialCount) stored = initialCount;
+        var lastCount = stored || initialCount;
+        var prevCount = lastCount;
+
+        function poll() {
+          fetch('<?php echo BASE_URL; ?>admin/app_count.php', { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              var n = d.pending || 0;
+              console.log('app poll:', n);
+              if (n > prevCount) {
+                prevCount = n;
+                lastCount = n;
+                try { localStorage.setItem('appLastSeen', String(n)); } catch (e) {}
+                window.location.reload();
+              } else {
+                prevCount = n;
+                lastCount = n;
+                try { localStorage.setItem('appLastSeen', String(n)); } catch (e) {}
+              }
+            })
+            .catch(function(e){ console.error('app poll error:', e); });
+        }
+
+        setInterval(poll, 1000);
+        poll();
+      })();
+    </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
