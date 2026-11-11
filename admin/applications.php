@@ -128,7 +128,7 @@ include __DIR__ . '/../includes/header.php';
     <form method="get" action="">
         <label>Filter by status:</label>
         <select name="status" onchange="this.form.submit()">
-            <?php foreach (['All','Pending','Approved','Rejected','Cancelled'] as $s): ?>
+            <?php foreach (['All','Pending','Approved','Rejected'] as $s): ?>
                 <option value="<?php echo $s; ?>" <?php echo $filter === $s ? 'selected' : ''; ?>><?php echo $s; ?></option>
             <?php endforeach; ?>
         </select>

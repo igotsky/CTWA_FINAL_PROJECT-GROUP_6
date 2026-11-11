@@ -473,9 +473,10 @@ include __DIR__ . '/../includes/header.php';
                 <label>Application Deadline</label><br>
                 <input type="date" name="application_deadline" value="<?php echo $org['application_deadline'] ?? ''; ?>" style="width:100%; max-width:200px;"><br><br>
 
-                <label>
-                    <input type="checkbox" name="auto_approve" value="1" <?php echo (int)($org['auto_approve'] ?? 0) === 1 ? 'checked' : ''; ?>> Auto-approve applications (if under capacity)
-                </label><br><br>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:16px;">
+                    <input type="checkbox" name="auto_approve" value="1" <?php echo (int)($org['auto_approve'] ?? 0) === 1 ? 'checked' : ''; ?>>
+                    <label>Auto-approve applications (if under capacity)</label>
+                </div>
 
                 <button type="submit">Save Settings</button>
             </div>

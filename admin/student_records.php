@@ -256,6 +256,9 @@ $search = trim($_GET['q'] ?? '');
 $regSearch = trim($_GET['reg_q'] ?? '');
 $logSearch = trim($_GET['log_q'] ?? '');
 $logStatus = $_GET['log_status'] ?? 'All';
+$sort = $_GET['sort'] ?? 'default';
+if (!in_array($sort, ['default', 'asc', 'desc'], true)) $sort = 'default';
+
 if (!in_array($logStatus, ['All','Approved','Rejected'], true)) $logStatus = 'All';
 
 $sql = "SELECT id, student_number, first_name, middle_name, last_name, course, year_level, email, created_at, user_id
@@ -268,7 +271,13 @@ if ($search !== '') {
     $params = [$like, $like, $like, $like, $like];
     $types = 'sssss';
 }
-$sql .= ' ORDER BY last_name, first_name';
+if ($sort === 'asc') {
+    $sql .= ' ORDER BY student_number ASC';
+} elseif ($sort === 'desc') {
+    $sql .= ' ORDER BY student_number DESC';
+} else {
+    $sql .= ' ORDER BY last_name, first_name';
+}
 
 $stmt = mysqli_prepare($conn, $sql);
 if (!empty($params)) {
@@ -455,7 +464,7 @@ include __DIR__ . '/../includes/header.php';
         <br>
 
         <table>
-            <thead><tr><th>Student No.</th><th>Name</th><th>Course/Year</th><th>Email</th><th>Active Memberships</th><th>Actions</th></tr></thead>
+            <thead><tr><th><a href="<?php echo BASE_URL; ?>admin/student_records.php?tab=list<?php echo $search !== '' ? '&q=' . urlencode($search) : ''; ?>&sort=<?php echo $sort === 'asc' ? 'desc' : ($sort === 'desc' ? 'default' : 'asc'); ?>" class="sort-link<?php echo $sort === 'asc' ? ' sort-asc' : ($sort === 'desc' ? ' sort-desc' : ' sort-default'); ?>" title="Sort by student number">Student No.<?php echo $sort === 'asc' ? ' ▲' : ($sort === 'desc' ? ' ▼' : ' ▶'); ?></a></th><th>Name</th><th>Course/Year</th><th>Email</th><th>Active Memberships</th><th>Actions</th></tr></thead>
             <tbody>
             <?php foreach ($students as $s): ?>
                 <tr>

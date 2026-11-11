@@ -562,6 +562,13 @@ form + p a:hover { color: var(--btn-primary); }
   border-radius: 50%;
   background: currentColor;
 }
+.sort-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
 /* Cancel button (matches confirm-dialog cancel: lift + shadow, no color change) */
 .btn-cancel {
