@@ -90,28 +90,196 @@ include __DIR__ . '/includes/header.php';
     </p>
     <p style="text-align:center; color:var(--text-secondary);">No account? <a href="<?php echo BASE_URL; ?>register.php" style="color:var(--text-primary); text-decoration:underline;">Register here</a>.</p>
 
-    <div id="forgotModal" class="msg-overlay" style="display:none;">
+    <!-- Step 1: Student number -->
+    <div id="fpStep1" class="msg-overlay" style="display:none;">
       <div class="msg-box">
-        <div class="msg-text" style="margin-bottom:12px;">Reset your password</div>
-        <form method="post" action="<?php echo BASE_URL; ?>forgot_password.php">
-          <input type="text" name="student_number" placeholder="Student Number" required style="width:100%; margin-bottom:8px;">
-          <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="document.getElementById('forgotModal').style.display='none';">Cancel</button>
-            <button type="submit" class="msg-ok">Submit</button>
-          </div>
-        </form>
+        <div class="msg-text" style="margin-bottom:12px; font-weight:600;">Reset your password</div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin:0 0 12px;">Enter your student number to continue.</p>
+        <input type="text" id="fpStudentNumber" placeholder="Student Number" style="width:100%; margin-bottom:8px;">
+        <div id="fpStep1Err" style="display:none; color:#e74c3c; font-size:0.85rem; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="fpCloseAll()">Cancel</button>
+          <button type="button" class="msg-ok" id="fpStep1Submit">Submit</button>
+        </div>
       </div>
     </div>
+
+    <!-- Step 2: 6-digit code -->
+    <div id="fpStep2" class="msg-overlay" style="display:none;">
+      <div class="msg-box">
+        <div class="msg-text" style="margin-bottom:12px; font-weight:600;">Enter verification code</div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin:0 0 12px;">A 6-digit code was sent to your email.</p>
+        <div style="display:flex; gap:8px; justify-content:center; margin-bottom:8px;">
+          <input type="text" inputmode="numeric" maxlength="1" class="code-box">
+          <input type="text" inputmode="numeric" maxlength="1" class="code-box">
+          <input type="text" inputmode="numeric" maxlength="1" class="code-box">
+          <input type="text" inputmode="numeric" maxlength="1" class="code-box">
+          <input type="text" inputmode="numeric" maxlength="1" class="code-box">
+          <input type="text" inputmode="numeric" maxlength="1" class="code-box">
+        </div>
+        <div id="fpStep2Err" style="display:none; color:#e74c3c; font-size:0.85rem; margin:8px 0;"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+          <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="fpCloseAll()">Cancel</button>
+          <button type="button" class="msg-ok" id="fpStep2Confirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: New password -->
+    <div id="fpStep3" class="msg-overlay" style="display:none;">
+      <div class="msg-box">
+        <div class="msg-text" style="margin-bottom:12px; font-weight:600;">Set new password</div>
+        <div class="password-wrapper" style="max-width:100%;">
+          <input type="password" id="fpNewPwd" placeholder="New password (min 8 chars)" style="width:100%;">
+          <button type="button" class="password-toggle" data-target="fpNewPwd" aria-label="Toggle password visibility">
+            <i data-lucide="eye" class="eye-show"></i>
+            <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+          </button>
+        </div>
+        <div class="password-wrapper" style="max-width:100%; margin-top:8px;">
+          <input type="password" id="fpConfirmPwd" placeholder="Confirm password" style="width:100%;">
+          <button type="button" class="password-toggle" data-target="fpConfirmPwd" aria-label="Toggle password visibility">
+            <i data-lucide="eye" class="eye-show"></i>
+            <i data-lucide="eye-off" class="eye-hide" style="display:none;"></i>
+          </button>
+        </div>
+        <div id="fpStep3Err" style="display:none; color:#e74c3c; font-size:0.85rem; margin:8px 0;"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+          <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="fpCloseAll()">Cancel</button>
+          <button type="button" class="msg-ok" id="fpStep3Confirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div id="fpStep4" class="msg-overlay" style="display:none;">
+      <div class="msg-box">
+        <div class="msg-text" style="margin-bottom:12px; font-weight:600; color:#16a34a;">Password updated successfully!</div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin:0;">You can now log in with your new password.</p>
+      </div>
+    </div>
+
     <script>
       (function() {
+        var step1 = document.getElementById('fpStep1');
+        var step2 = document.getElementById('fpStep2');
+        var step3 = document.getElementById('fpStep3');
+        var step4 = document.getElementById('fpStep4');
+        function show(el){ if(el) el.style.display='flex'; }
+        function hide(el){ if(el) el.style.display='none'; }
+        window.fpCloseAll = function(){ hide(step1); hide(step2); hide(step3); hide(step4); };
+
         var link = document.getElementById('forgotLink');
-        var modal = document.getElementById('forgotModal');
-        if (link && modal) {
-          link.addEventListener('click', function(e) { e.preventDefault(); modal.style.display = 'flex'; });
-          modal.addEventListener('click', function(e) {
-            if (e.target === modal) modal.style.display = 'none';
+        if (link) link.addEventListener('click', function(e){
+          e.preventDefault();
+          document.getElementById('fpStudentNumber').value = '';
+          document.getElementById('fpStep1Err').style.display = 'none';
+          show(step1);
+        });
+
+        document.getElementById('fpStep1Submit').addEventListener('click', function() {
+          var sn = document.getElementById('fpStudentNumber').value.trim();
+          var err = document.getElementById('fpStep1Err');
+          if (sn === '') { err.textContent = 'Please enter your student number.'; err.style.display = 'block'; return; }
+          var fd = new FormData();
+          fd.append('action', 'verify_student');
+          fd.append('student_number', sn);
+          fetch('<?php echo BASE_URL; ?>reset_password.php', { method: 'POST', body: fd })
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+              if (data.success) {
+                err.style.display = 'none';
+                document.querySelectorAll('#fpStep2 .code-box').forEach(function(b){ b.value = ''; });
+                document.getElementById('fpStep2Err').style.display = 'none';
+                hide(step1); show(step2);
+                var first = document.querySelector('#fpStep2 .code-box');
+                if (first) first.focus();
+              } else {
+                err.textContent = data.message;
+                err.style.display = 'block';
+              }
+            })
+            .catch(function(){ err.textContent = 'Request failed. Please try again.'; err.style.display = 'block'; });
+        });
+
+        var codeBoxes = document.querySelectorAll('#fpStep2 .code-box');
+        codeBoxes.forEach(function(box, idx) {
+          box.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0,1);
+            if (this.value && idx < codeBoxes.length - 1) codeBoxes[idx+1].focus();
           });
-        }
+          box.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && !this.value && idx > 0) codeBoxes[idx-1].focus();
+          });
+        });
+
+        document.getElementById('fpStep2Confirm').addEventListener('click', function() {
+          var code = '';
+          codeBoxes.forEach(function(b){ code += b.value; });
+          var err = document.getElementById('fpStep2Err');
+          if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+            err.textContent = 'Please enter all 6 digits.';
+            err.style.display = 'block';
+            return;
+          }
+          err.style.display = 'none';
+          document.getElementById('fpNewPwd').value = '';
+          document.getElementById('fpConfirmPwd').value = '';
+          document.getElementById('fpStep3Err').style.display = 'none';
+          hide(step2); show(step3);
+        });
+
+        document.getElementById('fpStep3Confirm').addEventListener('click', function() {
+          var np = document.getElementById('fpNewPwd').value;
+          var cp = document.getElementById('fpConfirmPwd').value;
+          var err = document.getElementById('fpStep3Err');
+          if (np.length < <?php echo (int)MIN_PASSWORD_LENGTH; ?>) {
+            err.textContent = 'Password must be at least <?php echo (int)MIN_PASSWORD_LENGTH; ?> characters.';
+            err.style.display = 'block';
+            return;
+          }
+          if (np !== cp) {
+            err.textContent = 'Passwords do not match.';
+            err.style.display = 'block';
+            return;
+          }
+          var fd = new FormData();
+          fd.append('action', 'reset');
+          fd.append('new_password', np);
+          fd.append('confirm_password', cp);
+          fetch('<?php echo BASE_URL; ?>reset_password.php', { method: 'POST', body: fd })
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+              if (data.success) {
+                err.style.display = 'none';
+                hide(step3); show(step4);
+                setTimeout(function(){ fpCloseAll(); }, 3000);
+              } else {
+                err.textContent = data.message;
+                err.style.display = 'block';
+              }
+            })
+            .catch(function(){ err.textContent = 'Request failed. Please try again.'; err.style.display = 'block'; });
+        });
+
+        // Dedicated toggle handler (stops propagation so global handler doesn't double-toggle)
+        document.querySelectorAll('.password-toggle').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var target = document.getElementById(this.getAttribute('data-target'));
+            if (!target) return;
+            var show = target.type === 'password';
+            target.type = show ? 'text' : 'password';
+            var eyeShow = this.querySelector('.eye-show');
+            var eyeHide = this.querySelector('.eye-hide');
+            if (eyeShow) eyeShow.style.display = show ? 'none' : '';
+            if (eyeHide) eyeHide.style.display = show ? '' : 'none';
+          });
+        });
+
+        [step1, step2, step3, step4].forEach(function(m) {
+          if (m) m.addEventListener('click', function(e) { if (e.target === m) fpCloseAll(); });
+        });
       })();
     </script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

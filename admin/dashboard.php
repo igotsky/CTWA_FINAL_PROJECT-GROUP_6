@@ -7,6 +7,7 @@ requireAdmin();
 // Counts
 $studentCount = 0;
 $orgCount = 0;
+$courseCount = 0;
 $appCount = 0;
 $pendingCount = 0;
 $approvedCount = 0;
@@ -15,6 +16,8 @@ $statusTotal = 0;
 
 $r = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM students');
 if ($r) { $studentCount = (int) mysqli_fetch_assoc($r)['c']; mysqli_free_result($r); }
+$r = mysqli_query($conn, 'SELECT COUNT(DISTINCT course) AS c FROM students');
+if ($r) { $courseCount = (int) mysqli_fetch_assoc($r)['c']; mysqli_free_result($r); }
 $r = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM organizations');
 if ($r) { $orgCount = (int) mysqli_fetch_assoc($r)['c']; mysqli_free_result($r); }
 $r = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM memberships');
@@ -54,11 +57,11 @@ include __DIR__ . '/../includes/header.php';
             <div class="num"><?php echo $orgCount; ?></div>
             <div class="label">Organizations</div>
         </div>
-        <div class="stat">
-            <div class="stat-head"><span class="stat-icon"><i data-lucide="clipboard-list"></i></span></div>
-            <div class="num"><?php echo $appCount; ?></div>
-            <div class="label">Applications</div>
-        </div>
+<div class="stat stat-info">
+    <div class="stat-head"><span class="stat-icon"><i data-lucide="book-open"></i></span></div>
+    <div class="num"><?php echo $courseCount; ?></div>
+    <div class="label">Courses</div>
+</div>
         <div class="stat stat-warn">
             <div class="stat-head"><span class="stat-icon"><i data-lucide="clock"></i></span></div>
             <div class="num"><?php echo $pendingCount; ?></div>
