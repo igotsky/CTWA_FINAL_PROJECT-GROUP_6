@@ -97,7 +97,7 @@ include __DIR__ . '/includes/header.php';
         <p style="font-size:0.85rem; color:var(--text-secondary); margin:0 0 12px;">Enter your student number to continue.</p>
         <input type="text" id="fpStudentNumber" placeholder="Student Number" style="width:100%; margin-bottom:8px;">
         <div id="fpStep1Err" style="display:none; color:#e74c3c; font-size:0.85rem; margin-bottom:8px;"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <div style="display:flex; gap:8px; justify-content:center;">
           <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="fpCloseAll()">Cancel</button>
           <button type="button" class="msg-ok" id="fpStep1Submit">Submit</button>
         </div>
@@ -118,7 +118,7 @@ include __DIR__ . '/includes/header.php';
           <input type="text" inputmode="numeric" maxlength="1" class="code-box">
         </div>
         <div id="fpStep2Err" style="display:none; color:#e74c3c; font-size:0.85rem; margin:8px 0;"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
           <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="fpCloseAll()">Cancel</button>
           <button type="button" class="msg-ok" id="fpStep2Confirm">Confirm</button>
         </div>
@@ -144,7 +144,7 @@ include __DIR__ . '/includes/header.php';
           </button>
         </div>
         <div id="fpStep3Err" style="display:none; color:#e74c3c; font-size:0.85rem; margin:8px 0;"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
           <button type="button" class="msg-ok" style="background:#fff; color:var(--text-primary); border:1px solid var(--border);" onclick="fpCloseAll()">Cancel</button>
           <button type="button" class="msg-ok" id="fpStep3Confirm">Confirm</button>
         </div>
